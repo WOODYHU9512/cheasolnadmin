@@ -1,111 +1,88 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-  <meta charset="UTF-8">
-  <title>審核申請資料</title>
-  <style>
-    body { font-family: Arial; max-width: 800px; margin: 20px auto; padding: 10px; }
-    h2 { text-align: center; }
-    .entry { border: 1px solid #ccc; padding: 10px; margin: 10px 0; border-radius: 8px; }
-    button { margin-right: 10px; }
-    .danger { color: red; }
-  </style>
-</head>
-<body>
-  <h2>審核註冊申請</h2>
+<script>
+  const ADMIN_PASSWORD = "yourPasswordHere"; // ✅ 請改為你自己的密碼
 
-  <div>
-    <label>管理員密碼：<input type="password" id="adminPass"></label>
-    <button onclick="verifyPassword()">登入</button>
-  </div>
+  const sourceDB = "https://chesolutionsignup-default-rtdb.firebaseio.com/pendingUsers.json";
+  const targetDB = "https://access-7a3c3-default-rtdb.firebaseio.com/users";
 
-  <div id="content" style="display:none">
-    <h3>待審核清單</h3>
-    <div id="entries"></div>
-    <button class="danger" onclick="deleteAll()">⚠️ 一鍵刪除所有資料</button>
-  </div>
-
-  <script>
-    const ADMIN_PASSWORD = "yourPasswordHere"; // ✅ 請改為你自己的密碼
-
-    const sourceDB = "https://chesolutionsignup-default-rtdb.firebaseio.com/pendingUsers.json";
-    const targetDB = "https://access-7a3c3-default-rtdb.firebaseio.com/users";
-
-    function verifyPassword() {
-      const input = document.getElementById("adminPass").value;
-      if (input === ADMIN_PASSWORD) {
-        document.getElementById("content").style.display = "block";
-        loadData();
-      } else {
-        alert("密碼錯誤");
-      }
-    }
-
-    async function loadData() {
-      const res = await fetch(sourceDB);
-      const data = await res.json();
-      const container = document.getElementById("entries");
-      container.innerHTML = "";
-
-      if (!data) {
-        container.innerHTML = "✅ 目前沒有待審核資料";
-        return;
-      }
-
-      Object.entries(data).forEach(([key, entry]) => {
-        const div = document.createElement("div");
-        div.className = "entry";
-
-        const html = `
-          <p><strong>帳號：</strong>${entry["申請帳號"]}</p>
-          <p><strong>密碼：</strong>${entry["申請密碼"]}</p>
-          <p><strong>姓名：</strong>${entry["真實姓名"]}</p>
-          <p><strong>FB：</strong>${entry["Facebook資訊"]}</p>
-          <p><strong>銀行後五碼：</strong>${entry["銀行帳號後五碼"]}</p>
-          <p><strong>學校：</strong>${entry["選擇學校"].join(", ")}</p>
-          <p><strong>金額：</strong>${entry["總金額"]}</p>
-          <p><strong>送出時間：</strong>${entry["送出時間"]}</p>
-          <button onclick='approve("${key}", ${JSON.stringify(entry)})'>✅ 同意送出</button>
-          <button onclick='remove("${key}")'>🗑️ 刪除此筆</button>
-        `;
-        div.innerHTML = html;
-        container.appendChild(div);
-      });
-    }
-
-    async function approve(key, entry) {
-      const username = entry["申請帳號"];
-      const payload = {
-        password: entry["申請密碼"],
-        isLoggedIn: false,
-        sessionToken: "",
-        purchased: {}
-      };
-      entry["選擇學校"].forEach(s => payload.purchased[s] = true);
-
-      await fetch(`${targetDB}/${username}.json`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-
-      await remove(key);
-    }
-
-    async function remove(key) {
-      await fetch(`https://chesolutionsignup-default-rtdb.firebaseio.com/pendingUsers/${key}.json`, {
-        method: "DELETE"
-      });
+  function verifyPassword() {
+    const input = document.getElementById("adminPass").value;
+    if (input === ADMIN_PASSWORD) {
+      document.getElementById("content").style.display = "block";
       loadData();
+    } else {
+      alert("密碼錯誤");
+    }
+  }
+
+  async function loadData() {
+    const res = await fetch(sourceDB, {
+      method: 'GET', 
+      headers: {
+        'Access-Control-Allow-Origin': 'https://woodyhu9512.github.io', // 添加跨域头部
+        'Content-Type': 'application/json'
+      }
+    });
+    const data = await res.json();
+    const container = document.getElementById("entries");
+    container.innerHTML = "";
+
+    if (!data) {
+      container.innerHTML = "✅ 目前沒有待審核資料";
+      return;
     }
 
-    async function deleteAll() {
-      if (!confirm("⚠️ 確定要刪除所有資料嗎？這無法復原！")) return;
-      await fetch("https://chesolutionsignup-default-rtdb.firebaseio.com/pendingUsers.json", {
-        method: "DELETE"
-      });
-      loadData();
-    }
-  </script>
-</body>
-</html>
+    Object.entries(data).forEach(([key, entry]) => {
+      const div = document.createElement("div");
+      div.className = "entry";
+
+      const html = `
+        <p><strong>帳號：</strong>${entry["申請帳號"]}</p>
+        <p><strong>密碼：</strong>${entry["申請密碼"]}</p>
+        <p><strong>姓名：</strong>${entry["真實姓名"]}</p>
+        <p><strong>FB：</strong>${entry["Facebook資訊"]}</p>
+        <p><strong>銀行後五碼：</strong>${entry["銀行帳號後五碼"]}</p>
+        <p><strong>學校：</strong>${entry["選擇學校"].join(", ")}</p>
+        <p><strong>金額：</strong>${entry["總金額"]}</p>
+        <p><strong>送出時間：</strong>${entry["送出時間"]}</p>
+        <button onclick='approve("${key}", ${JSON.stringify(entry)})'>✅ 同意送出</button>
+        <button onclick='remove("${key}")'>🗑️ 刪除此筆</button>
+      `;
+      div.innerHTML = html;
+      container.appendChild(div);
+    });
+  }
+
+  async function approve(key, entry) {
+    const username = entry["申請帳號"];
+    const payload = {
+      password: entry["申請密碼"],
+      isLoggedIn: false,
+      sessionToken: "",
+      purchased: {}
+    };
+    entry["選擇學校"].forEach(s => payload.purchased[s] = true);
+
+    await fetch(`${targetDB}/${username}.json`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    await remove(key);
+  }
+
+  async function remove(key) {
+    await fetch(`https://chesolutionsignup-default-rtdb.firebaseio.com/pendingUsers/${key}.json`, {
+      method: "DELETE"
+    });
+    loadData();
+  }
+
+  async function deleteAll() {
+    if (!confirm("⚠️ 確定要刪除所有資料嗎？這無法復原！")) return;
+    await fetch("https://chesolutionsignup-default-rtdb.firebaseio.com/pendingUsers.json", {
+      method: "DELETE"
+    });
+    loadData();
+  }
+</script>
