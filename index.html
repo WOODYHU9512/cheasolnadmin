@@ -10,17 +10,16 @@
     button { margin-right: 10px; }
     .danger { color: red; }
   </style>
-
-  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 </head>
 <body>
   <h2>審核註冊申請</h2>
 
   <div id="login-section">
-    <button onclick="signIn()">使用 Google 登入</button>
+    <label>帳號：<input type="text" id="adminUser"></label>
+    <label>密碼：<input type="password" id="adminPass"></label>
+    <button onclick="verifyLogin()">登入</button>
   </div>
 
   <div id="content" style="display:none">
@@ -36,12 +35,13 @@
 
   <script>
     const firebaseConfig = {
-      apiKey: "AIzaSyBCI-jpTVQou31yf6B7CnOXkF2lqfssSkc",
-      authDomain: "chesolutionsignup.firebaseapp.com",
+      apiKey: "",
+      authDomain: "",
+      databaseURL: "https://chesolutionsignup-default-rtdb.firebaseio.com",
       projectId: "chesolutionsignup"
     };
     firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
+    const db = firebase.database();
 
     const getAPI = "https://us-central1-chesolutionsignup.cloudfunctions.net/getPendingUsers";
     const deleteAPI = "https://us-central1-chesolutionsignup.cloudfunctions.net/deletePendingUser";
@@ -49,26 +49,32 @@
     const getAccessAPI = "https://us-central1-chesolutionsignup.cloudfunctions.net/getAllUsersFromAccess";
     const deleteAccessAPI = "https://us-central1-chesolutionsignup.cloudfunctions.net/deleteUserFromAccess";
 
-    function signIn() {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      auth.signInWithPopup(provider)
-        .then(result => {
+    async function verifyLogin() {
+      const user = document.getElementById("adminUser").value.trim();
+      const pass = document.getElementById("adminPass").value.trim();
+
+      if (!user || !pass) return alert("請輸入帳號與密碼");
+
+      try {
+        const snap = await db.ref(`adminUsers/${user}`).once("value");
+        const data = snap.val();
+        if (data && data.password === pass) {
           document.getElementById("login-section").style.display = "none";
           document.getElementById("content").style.display = "block";
-          document.getElementById("userEmail").innerText = result.user.email;
+          document.getElementById("userEmail").innerText = user;
           loadData();
           loadAccessUsers();
-        })
-        .catch(err => {
-          console.error("登入失敗", err);
-          alert("登入失敗：" + err.message);
-        });
+        } else {
+          alert("帳號或密碼錯誤");
+        }
+      } catch (err) {
+        console.error("登入錯誤", err);
+        alert("登入失敗");
+      }
     }
 
     function signOut() {
-      auth.signOut().then(() => {
-        location.reload();
-      });
+      location.reload();
     }
 
     async function loadData() {
