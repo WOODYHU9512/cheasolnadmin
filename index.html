@@ -26,11 +26,10 @@
   </div>
 
   <script>
-    const ADMIN_PASSWORD = "yourPasswordHere"; // ✅ 請修改成你的密碼
-
+    const ADMIN_PASSWORD = "yourPasswordHere"; // 請改為你的密碼
     const getAPI = "https://us-central1-chesolutionsignup.cloudfunctions.net/getPendingUsers";
     const deleteAPI = "https://us-central1-chesolutionsignup.cloudfunctions.net/deletePendingUser";
-    const targetDB = "https://access-7a3c3-default-rtdb.firebaseio.com/users";
+    const approveAPI = "https://us-central1-chesolutionsignup.cloudfunctions.net/approveUserToAccessProject";
 
     function verifyPassword() {
       const input = document.getElementById("adminPass").value;
@@ -62,7 +61,7 @@
           const bankLast5 = entry["銀行帳號後五碼"];
           const schools = entry["選擇學校"];
 
-          if (!username || !password || !schools || !Array.isArray(schools)) {
+          if (!username || !password || !Array.isArray(schools)) {
             console.warn("⚠️ 略過格式錯誤資料：", key);
             return;
           }
@@ -88,22 +87,27 @@
     }
 
     async function approve(key, entry) {
-      const username = entry["申請帳號"];
       const payload = {
+        username: entry["申請帳號"],
         password: entry["申請密碼"],
-        isLoggedIn: false,
-        sessionToken: "",
-        purchased: {}
+        schools: entry["選擇學校"]
       };
-      entry["選擇學校"].forEach(s => payload.purchased[s] = true);
 
-      await fetch(`${targetDB}/${username}.json`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
+      try {
+        const res = await fetch(approveAPI, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
 
-      await remove(key);
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || "審核失敗");
+
+        await remove(key);
+      } catch (err) {
+        console.error("❌ 審核失敗", err);
+        alert("❌ 審核失敗：" + err.message);
+      }
     }
 
     async function remove(key) {
