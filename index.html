@@ -16,7 +16,7 @@
 
   <div>
     <label>管理員密碼：<input type="password" id="adminPass"></label>
-    <button onclick="verifyPassword()">登入</button>
+    <button id="loginBtn">登入</button>
   </div>
 
   <div id="content" style="display:none">
@@ -26,11 +26,12 @@
   </div>
 
   <script>
-    const ADMIN_PASSWORD = "yourPasswordHere"; // 請替換成你自己的密碼
-
+    const ADMIN_PASSWORD = "yourPasswordHere";
     const API_GET = "https://us-central1-chesolutionsignup.cloudfunctions.net/getPendingUsers";
-    const DB_DELETE = "https://chesolutionsignup-default-rtdb.firebaseio.com/pendingUsers";
-    const DB_TARGET = "https://access-7a3c3-default-rtdb.firebaseio.com/users";
+    const DB_DELETE_BASE = "https://chesolutionsignup-default-rtdb.firebaseio.com/pendingUsers";
+    const TARGET_DB = "https://access-7a3c3-default-rtdb.firebaseio.com/users";
+
+    document.getElementById("loginBtn").addEventListener("click", verifyPassword);
 
     function verifyPassword() {
       const input = document.getElementById("adminPass").value;
@@ -43,35 +44,39 @@
     }
 
     async function loadData() {
-      const res = await fetch(API_GET);
-      const data = await res.json();
-      const container = document.getElementById("entries");
-      container.innerHTML = "";
+      try {
+        const res = await fetch(API_GET);
+        const data = await res.json();
+        const container = document.getElementById("entries");
+        container.innerHTML = "";
 
-      if (!data || Object.keys(data).length === 0) {
-        container.innerHTML = "✅ 目前沒有待審核資料";
-        return;
+        if (!data || Object.keys(data).length === 0) {
+          container.innerHTML = "✅ 目前沒有待審核資料";
+          return;
+        }
+
+        Object.entries(data).forEach(([key, entry]) => {
+          const div = document.createElement("div");
+          div.className = "entry";
+
+          const html = `
+            <p><strong>帳號：</strong>${entry["申請帳號"]}</p>
+            <p><strong>密碼：</strong>${entry["申請密碼"]}</p>
+            <p><strong>姓名：</strong>${entry["真實姓名"]}</p>
+            <p><strong>FB：</strong>${entry["Facebook資訊"]}</p>
+            <p><strong>銀行後五碼：</strong>${entry["銀行帳號後五碼"]}</p>
+            <p><strong>學校：</strong>${entry["選擇學校"].join(", ")}</p>
+            <p><strong>金額：</strong>${entry["總金額"]}</p>
+            <p><strong>送出時間：</strong>${entry["送出時間"]}</p>
+            <button onclick='approve("${key}', ${JSON.stringify(entry).replace(/'/g, "&apos;")})'>✅ 同意送出</button>
+            <button onclick='remove("${key}")'>🗑️ 刪除此筆</button>
+          `;
+          div.innerHTML = html;
+          container.appendChild(div);
+        });
+      } catch (e) {
+        console.error("資料讀取失敗", e);
       }
-
-      Object.entries(data).forEach(([key, entry]) => {
-        const div = document.createElement("div");
-        div.className = "entry";
-
-        const html = `
-          <p><strong>帳號：</strong>${entry["申請帳號"]}</p>
-          <p><strong>密碼：</strong>${entry["申請密碼"]}</p>
-          <p><strong>姓名：</strong>${entry["真實姓名"]}</p>
-          <p><strong>FB：</strong>${entry["Facebook資訊"]}</p>
-          <p><strong>銀行後五碼：</strong>${entry["銀行帳號後五碼"]}</p>
-          <p><strong>學校：</strong>${entry["選擇學校"].join(", ")}</p>
-          <p><strong>金額：</strong>${entry["總金額"]}</p>
-          <p><strong>送出時間：</strong>${entry["送出時間"]}</p>
-          <button onclick='approve(`"${key}"`, ${JSON.stringify(entry)})'>✅ 同意送出</button>
-          <button onclick='remove(`"${key}"`)'>🗑️ 刪除此筆</button>
-        `;
-        div.innerHTML = html;
-        container.appendChild(div);
-      });
     }
 
     async function approve(key, entry) {
@@ -84,7 +89,7 @@
       };
       entry["選擇學校"].forEach(s => payload.purchased[s] = true);
 
-      await fetch(`${DB_TARGET}/${username}.json`, {
+      await fetch(`${TARGET_DB}/${username}.json`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -94,13 +99,13 @@
     }
 
     async function remove(key) {
-      await fetch(`${DB_DELETE}/${key}.json`, { method: "DELETE" });
+      await fetch(`${DB_DELETE_BASE}/${key}.json`, { method: "DELETE" });
       loadData();
     }
 
     async function deleteAll() {
       if (!confirm("⚠️ 確定要刪除所有資料嗎？這無法復原！")) return;
-      await fetch(DB_DELETE + ".json", { method: "DELETE" });
+      await fetch(DB_DELETE_BASE + ".json", { method: "DELETE" });
       loadData();
     }
   </script>
