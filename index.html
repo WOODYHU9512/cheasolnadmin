@@ -26,7 +26,7 @@
   </div>
 
   <script>
-    const ADMIN_PASSWORD = "yourPasswordHere"; // ⛔ 請務必改成你的密碼
+    const ADMIN_PASSWORD = "yourPasswordHere"; // ⨭ 請變更為你的密碼
 
     const getAPI = "https://us-central1-chesolutionsignup.cloudfunctions.net/getPendingUsers";
     const deleteAPI = "https://us-central1-chesolutionsignup.cloudfunctions.net/deletePendingUser";
@@ -94,6 +94,11 @@
         schools: entry["選擇學校"]
       };
 
+      if (!payload.username || !payload.password || !Array.isArray(payload.schools) || payload.schools.length === 0) {
+        alert("❌ 欄位不足，無法送出");
+        return;
+      }
+
       try {
         const res = await fetch(approveAPI, {
           method: "POST",
@@ -104,6 +109,7 @@
         const result = await res.json();
         if (!res.ok) throw new Error(result.error || "審核失敗");
 
+        alert("✅ 使用者已加入正式資料庫");
         await remove(key);
       } catch (err) {
         console.error("❌ 審核失敗", err);
