@@ -19,11 +19,11 @@
   <div id="login-section">
     <label>帳號：<input type="text" id="adminUser"></label>
     <label>密碼：<input type="password" id="adminPass"></label>
-    <button onclick="verifyLogin()">登入</button>
+    <button onclick="verifyPassword()">登入</button>
   </div>
 
   <div id="content" style="display:none">
-    <p>👤 已登入：<span id="userEmail"></span> <button onclick="signOut()">登出</button></p>
+    <p>👤 已登入：<span id="userEmail"></span> <button onclick="location.reload()">登出</button></p>
 
     <h3>待審核清單</h3>
     <div id="entries"></div>
@@ -35,8 +35,8 @@
 
   <script>
     const firebaseConfig = {
-      apiKey: "",
-      authDomain: "",
+      apiKey: "AIzaSyBCI-jpTVQou31yf6B7CnOXkF2lqfssSkc",
+      authDomain: "chesolutionsignup.firebaseapp.com",
       databaseURL: "https://chesolutionsignup-default-rtdb.firebaseio.com",
       projectId: "chesolutionsignup"
     };
@@ -49,32 +49,27 @@
     const getAccessAPI = "https://us-central1-chesolutionsignup.cloudfunctions.net/getAllUsersFromAccess";
     const deleteAccessAPI = "https://us-central1-chesolutionsignup.cloudfunctions.net/deleteUserFromAccess";
 
-    async function verifyLogin() {
-      const user = document.getElementById("adminUser").value.trim();
-      const pass = document.getElementById("adminPass").value.trim();
+    function verifyPassword() {
+      const inputUser = document.getElementById("adminUser").value.trim();
+      const inputPass = document.getElementById("adminPass").value.trim();
 
-      if (!user || !pass) return alert("請輸入帳號與密碼");
-
-      try {
-        const snap = await db.ref(`adminUsers/${user}`).once("value");
-        const data = snap.val();
-        if (data && data.password === pass) {
+      db.ref("adminUsers/" + inputUser).once("value")
+        .then(snapshot => {
+          const data = snapshot.val();
+          if (!data || data.password !== inputPass) {
+            alert("帳號或密碼錯誤");
+            return;
+          }
           document.getElementById("login-section").style.display = "none";
           document.getElementById("content").style.display = "block";
-          document.getElementById("userEmail").innerText = user;
+          document.getElementById("userEmail").innerText = inputUser;
           loadData();
           loadAccessUsers();
-        } else {
-          alert("帳號或密碼錯誤");
-        }
-      } catch (err) {
-        console.error("登入錯誤", err);
-        alert("登入失敗");
-      }
-    }
-
-    function signOut() {
-      location.reload();
+        })
+        .catch(err => {
+          console.error("登入錯誤", err);
+          alert("登入錯誤：" + err.message);
+        });
     }
 
     async function loadData() {
