@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>審核申請資料</title>
   <style>
     body { font-family: Arial; max-width: 800px; margin: 20px auto; padding: 10px; }
@@ -26,7 +26,8 @@
   </div>
 
   <script>
-    const ADMIN_PASSWORD = "yourPasswordHere"; // 請改為你的密碼
+    const ADMIN_PASSWORD = "yourPasswordHere"; // ⛔ 請務必改成你的密碼
+
     const getAPI = "https://us-central1-chesolutionsignup.cloudfunctions.net/getPendingUsers";
     const deleteAPI = "https://us-central1-chesolutionsignup.cloudfunctions.net/deletePendingUser";
     const approveAPI = "https://us-central1-chesolutionsignup.cloudfunctions.net/approveUserToAccessProject";
@@ -68,7 +69,7 @@
 
           const div = document.createElement("div");
           div.className = "entry";
-          const html = `
+          div.innerHTML = `
             <p><strong>帳號：</strong>${username}</p>
             <p><strong>密碼：</strong>${password}</p>
             <p><strong>姓名：</strong>${realName}</p>
@@ -78,11 +79,11 @@
             <button onclick='approve("${key}", ${JSON.stringify(entry)})'>✅ 同意送出</button>
             <button onclick='remove("${key}")'>🗑️ 刪除此筆</button>
           `;
-          div.innerHTML = html;
           container.appendChild(div);
         });
       } catch (err) {
         console.error("❌ 資料讀取失敗", err);
+        alert("❌ 資料讀取失敗，請檢查網路或伺服器狀況");
       }
     }
 
@@ -120,6 +121,7 @@
         loadData();
       } catch (err) {
         console.error("❌ 刪除失敗", err);
+        alert("❌ 刪除失敗：" + err.message);
       }
     }
 
