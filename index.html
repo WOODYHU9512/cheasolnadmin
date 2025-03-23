@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8" />
-  <title>審核申請資料</title>
+  <meta charset="UTF-8">
+  <title>審核註冊申請（Google 登入）</title>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
   <style>
     body { font-family: Arial; max-width: 800px; margin: 20px auto; padding: 10px; }
     h2 { text-align: center; }
@@ -13,15 +15,12 @@
 </head>
 <body>
   <h2>審核註冊申請</h2>
-
-  <div>
-    <label>Email：<input type="email" id="adminEmail"></label>
-    <label>密碼：<input type="password" id="adminPass"></label>
-    <button onclick="verifyPassword()">登入</button>
-    <button onclick="logout()">登出</button>
+  <div id="login">
+    <button onclick="signInWithGoogle()">使用 Google 登入</button>
   </div>
-
   <div id="content" style="display:none">
+    <p>👤 登入身分：<span id="adminEmail"></span> <button onclick="signOut()">登出</button></p>
+
     <h3>待審核清單</h3>
     <div id="entries"></div>
     <button class="danger" onclick="deleteAll()">⚠️ 一鍵刪除所有資料</button>
@@ -30,87 +29,80 @@
     <div id="accessUsers"></div>
   </div>
 
-  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js"></script>
   <script>
+    // ✅ Firebase 設定
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT.firebaseapp.com",
-      projectId: "YOUR_PROJECT_ID"
+      apiKey: "AIzaSyBCI-jpTVQou31yf6B7CnOXkF2lqfssSkc",
+      authDomain: "chesolutionsignup.firebaseapp.com",
+      projectId: "chesolutionsignup"
     };
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
 
-    const ADMIN_EMAIL = "your-admin@example.com";
+    // ✅ 僅允許這個管理員信箱登入
+    const ADMIN_EMAIL = "你的管理員信箱@gmail.com";
 
+    async function signInWithGoogle() {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      try {
+        const result = await auth.signInWithPopup(provider);
+        const user = result.user;
+        if (user.email !== ADMIN_EMAIL) {
+          alert("❌ 非授權管理員帳號");
+          await auth.signOut();
+          return;
+        }
+        document.getElementById("adminEmail").innerText = user.email;
+        document.getElementById("login").style.display = "none";
+        document.getElementById("content").style.display = "block";
+        loadData();
+        loadAccessUsers();
+      } catch (err) {
+        alert("登入失敗！");
+        console.error(err);
+      }
+    }
+
+    function signOut() {
+      auth.signOut().then(() => location.reload());
+    }
+
+    // ✅ Cloud Functions URL
     const getAPI = "https://us-central1-chesolutionsignup.cloudfunctions.net/getPendingUsers";
     const deleteAPI = "https://us-central1-chesolutionsignup.cloudfunctions.net/deletePendingUser";
     const approveAPI = "https://us-central1-chesolutionsignup.cloudfunctions.net/approveUserToAccessProject";
     const getAccessAPI = "https://us-central1-chesolutionsignup.cloudfunctions.net/getAllUsersFromAccess";
     const deleteAccessAPI = "https://us-central1-chesolutionsignup.cloudfunctions.net/deleteUserFromAccess";
 
-    async function verifyPassword() {
-      const email = document.getElementById("adminEmail").value;
-      const password = document.getElementById("adminPass").value;
-
-      try {
-        const cred = await auth.signInWithEmailAndPassword(email, password);
-        if (cred.user.email !== ADMIN_EMAIL) {
-          alert("你不是管理員");
-          auth.signOut();
-          return;
-        }
-        document.getElementById("content").style.display = "block";
-        loadData();
-        loadAccessUsers();
-      } catch (err) {
-        alert("登入失敗：" + err.message);
-      }
-    }
-
-    function logout() {
-      auth.signOut().then(() => {
-        alert("已登出");
-        location.reload();
-      });
-    }
-
     async function loadData() {
-      try {
-        const res = await fetch(getAPI);
-        const data = await res.json();
-        const container = document.getElementById("entries");
-        container.innerHTML = "";
-        if (!data || Object.keys(data).length === 0) {
-          container.innerHTML = "✅ 目前沒有待審核資料";
-          return;
-        }
-        Object.entries(data).forEach(([key, entry]) => {
-          const username = entry["申請帳號"];
-          const password = entry["申請密碼"];
-          const realName = entry["真實姓名"];
-          const fbName = entry["Facebook資訊"];
-          const bankLast5 = entry["銀行帳號後五碼"];
-          const schools = entry["選擇學校"];
-          if (!username || !password || !Array.isArray(schools)) return;
+      const res = await fetch(getAPI);
+      const data = await res.json();
+      const container = document.getElementById("entries");
+      container.innerHTML = "";
 
-          const div = document.createElement("div");
-          div.className = "entry";
-          div.innerHTML = `
-            <p><strong>帳號：</strong>${username}</p>
-            <p><strong>密碼：</strong>${password}</p>
-            <p><strong>姓名：</strong>${realName}</p>
-            <p><strong>FB：</strong>${fbName}</p>
-            <p><strong>銀行後五碼：</strong>${bankLast5}</p>
-            <p><strong>學校：</strong>${schools.join(", ")}</p>
-            <button onclick='approve("${key}", ${JSON.stringify(entry)})'>✅ 同意送出</button>
-            <button onclick='remove("${key}")'>🗑️ 刪除此筆</button>
-          `;
-          container.appendChild(div);
-        });
-      } catch (err) {
-        alert("❌ 資料讀取失敗");
+      if (!data || Object.keys(data).length === 0) {
+        container.innerHTML = "✅ 目前沒有待審核資料";
+        return;
       }
+
+      Object.entries(data).forEach(([key, entry]) => {
+        const { "申請帳號": username, "申請密碼": password, "真實姓名": realName, "Facebook資訊": fbName, "銀行帳號後五碼": bankLast5, "選擇學校": schools } = entry;
+        if (!username || !password || !Array.isArray(schools)) return;
+
+        const div = document.createElement("div");
+        div.className = "entry";
+        div.innerHTML = `
+          <p><strong>帳號：</strong>${username}</p>
+          <p><strong>密碼：</strong>${password}</p>
+          <p><strong>姓名：</strong>${realName}</p>
+          <p><strong>FB：</strong>${fbName}</p>
+          <p><strong>銀行後五碼：</strong>${bankLast5}</p>
+          <p><strong>學校：</strong>${schools.join(", ")}</p>
+          <button onclick='approve("${key}", ${JSON.stringify(entry)})'>✅ 同意送出</button>
+          <button onclick='remove("${key}")'>🗑️ 刪除此筆</button>
+        `;
+        container.appendChild(div);
+      });
     }
 
     async function approve(key, entry) {
@@ -119,20 +111,15 @@
         password: entry["申請密碼"],
         schools: entry["選擇學校"]
       };
-      try {
-        const res = await fetch(approveAPI, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-        const result = await res.json();
-        if (!res.ok) throw new Error(result.error || "審核失敗");
-        alert("✅ 使用者已加入正式資料庫");
-        await remove(key);
-        await loadAccessUsers();
-      } catch (err) {
-        alert("❌ 審核失敗：" + err.message);
-      }
+      const res = await fetch(approveAPI, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const result = await res.json();
+      if (!res.ok) return alert("❌ 審核失敗：" + result.error);
+      await remove(key);
+      loadAccessUsers();
     }
 
     async function remove(key) {
@@ -148,7 +135,7 @@
       if (!confirm("⚠️ 確定要刪除所有資料嗎？")) return;
       const res = await fetch(getAPI);
       const data = await res.json();
-      for (const key of Object.keys(data)) await remove(key);
+      for (const key of Object.keys(data || {})) await remove(key);
     }
 
     async function loadAccessUsers() {
@@ -156,10 +143,12 @@
       const data = await res.json();
       const container = document.getElementById("accessUsers");
       container.innerHTML = "";
+
       if (!data || Object.keys(data).length === 0) {
         container.innerHTML = "✅ 無正式使用者";
         return;
       }
+
       Object.entries(data).forEach(([username, user]) => {
         const div = document.createElement("div");
         div.className = "entry";
@@ -181,7 +170,7 @@
         body: JSON.stringify({ username })
       });
       alert("✅ 已刪除該使用者");
-      await loadAccessUsers();
+      loadAccessUsers();
     }
   </script>
 </body>
