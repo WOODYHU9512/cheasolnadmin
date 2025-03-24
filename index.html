@@ -85,29 +85,32 @@
         }
 
         Object.entries(data).forEach(([key, entry]) => {
-          const username = entry["申請帳號"];
-          const password = entry["申請密碼"];
-          const realName = entry["真實姓名"];
-          const fbName = entry["Facebook資訊"];
-          const bankLast5 = entry["銀行帳號後五碼"];
-          const schools = entry["選擇學校"];
+  const username = entry["申請帳號"];
+  const password = entry["申請密碼"];
+  const realName = entry["真實姓名"];
+  const fbName = entry["Facebook資訊"];
+  const paymentMethod = entry["付款方式"] || "未填寫";
+  const paymentInfo = entry["匯款資訊"] || "未提供";
+  const schools = entry["選擇學校"];
 
-          if (!username || !password || !Array.isArray(schools)) return;
+  if (!username || !password || !Array.isArray(schools)) return;
 
-          const div = document.createElement("div");
-          div.className = "entry";
-          div.innerHTML = `
-            <p><strong>帳號：</strong>${username}</p>
-            <p><strong>密碼：</strong>${password}</p>
-            <p><strong>姓名：</strong>${realName}</p>
-            <p><strong>FB：</strong>${fbName}</p>
-            <p><strong>銀行後五碼：</strong>${bankLast5}</p>
-            <p><strong>學校：</strong>${schools.join(", ")}</p>
-            <button onclick='approve("${key}", ${JSON.stringify(entry)})'>✅ 同意送出</button>
-            <button onclick='remove("${key}")'>🗑️ 刪除此筆</button>
-          `;
-          container.appendChild(div);
-        });
+  const div = document.createElement("div");
+  div.className = "entry";
+  div.innerHTML = `
+    <p><strong>帳號：</strong>${username}</p>
+    <p><strong>密碼：</strong>${password}</p>
+    <p><strong>姓名：</strong>${realName}</p>
+    <p><strong>FB：</strong>${fbName}</p>
+    <p><strong>付款方式：</strong>${paymentMethod}</p>
+    <p><strong>匯款資訊：</strong>${paymentInfo}</p>
+    <p><strong>學校：</strong>${schools.join(", ")}</p>
+    <button onclick='approve("${key}", ${JSON.stringify(entry)})'>✅ 同意送出</button>
+    <button onclick='remove("${key}")'>🗑️ 刪除此筆</button>
+  `;
+  container.appendChild(div);
+});
+
       } catch (err) {
         console.error("讀取錯誤", err);
         alert("❌ 資料讀取失敗");
