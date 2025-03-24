@@ -237,16 +237,35 @@
     }
 
     async function confirmUpdateUser(oldUsername) {
-      if (!confirm("⚠️ 確定要儲存變更？此操作無法復原")) return;
-      const newUsername = document.getElementById("edit-user-" + oldUsername).value.trim();
-      const newPassword = document.getElementById("edit-pass-" + oldUsername).value.trim();
-      const schoolStr = document.getElementById("edit-schools-" + oldUsername).value.trim();
-      const schools = schoolStr.split(",").map(s => s.trim()).filter(Boolean);
+  if (!confirm("⚠️ 確定要儲存變更？此操作無法復原")) return;
+  const newUsername = document.getElementById("edit-user-" + oldUsername).value.trim();
+  const newPassword = document.getElementById("edit-pass-" + oldUsername).value.trim();
+  const schoolStr = document.getElementById("edit-schools-" + oldUsername).value.trim();
+  const schools = schoolStr.split(",").map(s => s.trim()).filter(Boolean);
 
-      console.log("準備送出更新：", { oldUsername, newUsername, newPassword, schools });
+  if (!newUsername || !newPassword || schools.length === 0) {
+    alert("❌ 所有欄位都必須填寫");
+    return;
+  }
 
-      alert("✅ 模擬更新成功（尚未實作後端）\n帳號：「" + newUsername + "」\n密碼：「" + newPassword + "」\n學校：「" + schools.join(", ") + "」");
-    }
+  try {
+    const res = await fetch("https://us-central1-chesolutionsignup.cloudfunctions.net/updateAccessUserInfo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ oldUsername, newUsername, newPassword, schools })
+    });
+    const result = await res.json();
+
+    if (!res.ok) throw new Error(result.error || "更新失敗");
+
+    alert("✅ 已成功更新使用者資訊");
+    loadAccessUsers();
+  } catch (err) {
+    console.error("❌ 更新失敗", err);
+    alert("❌ 更新失敗：" + err.message);
+  }
+}
+
 
     async function deleteAccessUser(username) {
       if (!confirm(`⚠️ 確定刪除使用者 ${username}？`)) return;
