@@ -128,22 +128,26 @@
           const paymentMethod = entry["付款方式"] || "未填寫";
           const paymentInfo = entry["付款帳號資訊"] || "未提供";
           const schools = entry["選擇學校"];
+          const submitTime = entry["送出時間"] || "無時間資訊";
+
 
           if (!username || !password || !Array.isArray(schools)) return;
 
           const div = document.createElement("div");
           div.className = "entry";
           div.innerHTML = `
-            <p><strong>帳號：</strong>${username}</p>
-            <p><strong>密碼：</strong>${password}</p>
-            <p><strong>姓名：</strong>${realName}</p>
-            <p><strong>FB：</strong>${fbName}</p>
-            <p><strong>付款方式：</strong>${paymentMethod}</p>
-            <p><strong>付款帳號資訊：</strong>${paymentInfo}</p>
-            <p><strong>學校：</strong>${schools.join(", ")}</p>
-            <button onclick='approve("${key}", ${JSON.stringify(entry)})'>✅ 同意送出</button>
-            <button onclick='remove("${key}")'>🗑️ 刪除此筆</button>
-          `;
+  <p><strong>帳號：</strong>${username}</p>
+  <p><strong>密碼：</strong>${password}</p>
+  <p><strong>姓名：</strong>${realName}</p>
+  <p><strong>FB：</strong>${fbName}</p>
+  <p><strong>付款方式：</strong>${paymentMethod}</p>
+  <p><strong>付款帳號資訊：</strong>${paymentInfo}</p>
+  <p><strong>學校：</strong>${schools.join(", ")}</p>
+  <p><strong>送出時間：</strong>${submitTime}</p> <!-- ✅ 新增這一行 -->
+  <button onclick='approve("${key}", ${JSON.stringify(entry)})'>✅ 同意送出</button>
+  <button onclick='remove("${key}")'>🗑️ 刪除此筆</button>
+`;
+
           container.appendChild(div);
         });
       } catch (err) {
