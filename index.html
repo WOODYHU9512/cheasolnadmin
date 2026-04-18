@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
-  <title>審核註冊申請</title>
+  <title>審核註冊申請 - 批次管理版</title>
   <style>
   body {
     font-family: "Microsoft JhengHei", Arial, sans-serif;
@@ -22,6 +22,7 @@
     margin: 15px 0;
     border-radius: 12px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    position: relative;
   }
   .school-tag-container {
     display: flex;
@@ -43,6 +44,17 @@
   .school-tag-container input {
     margin-right: 5px;
   }
+  .sticky-header {
+    position: sticky;
+    top: 0;
+    background: #f4f7f6;
+    padding: 10px 0;
+    z-index: 100;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    border-bottom: 2px solid #ddd;
+  }
   button {
     margin-top: 10px;
     padding: 8px 16px;
@@ -53,6 +65,15 @@
   }
   .btn-approve { background-color: #4CAF50; color: white; border: none; }
   .btn-save { background-color: #2196F3; color: white; border: none; }
+  .btn-bulk-save { 
+    background-color: #ff9800; 
+    color: white; 
+    border: none; 
+    font-weight: bold;
+    padding: 12px 24px;
+    font-size: 16px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  }
   .danger { color: red; border-color: red; background: white; }
   .danger:hover { background: #fff1f1; }
 
@@ -90,7 +111,12 @@
   </div>
 
   <div id="content" style="display:none">
-    <p style="text-align: right;">👤 管理員：<span id="userEmail" style="font-weight:bold;"></span> <button onclick="location.reload()">登出</button></p>
+    <div class="sticky-header">
+        <button class="btn-bulk-save" onclick="saveAllChanges()">🚀 一鍵儲存所有使用者變更</button>
+        <button onclick="location.reload()">🔄 重新載入/登出</button>
+    </div>
+
+    <p style="text-align: right;">👤 管理員：<span id="userEmail" style="font-weight:bold;"></span></p>
 
     <hr>
     <h3>📥 待審核申請</h3>
@@ -105,7 +131,7 @@
   </div>
 
   <script>
-    // 初始化主資料庫 (管理員驗證用)
+    // 初始化主資料庫
     const firebaseConfig = {
       apiKey: "AIzaSyBCI-jpTVQou31yf6B7CnOXkF2lqfssSkc",
       authDomain: "chesolutionsignup.firebaseapp.com",
@@ -115,7 +141,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // 初始化外部資料庫 (抓取最新科目分類用)
+    // 初始化外部資料庫
     const accessApp = firebase.initializeApp({
       databaseURL: "https://access-7a3c3-default-rtdb.firebaseio.com/"
     }, "accessProject");
@@ -126,11 +152,11 @@
     const approveAPI = "https://us-central1-chesolutionsignup.cloudfunctions.net/approveUserToAccessProject";
     const getAccessAPI = "https://us-central1-chesolutionsignup.cloudfunctions.net/getAllUsersFromAccess";
     const deleteAccessAPI = "https://us-central1-chesolutionsignup.cloudfunctions.net/deleteUserFromAccess";
+    const updateAccessAPI = "https://us-central1-chesolutionsignup.cloudfunctions.net/updateAccessUserInfo";
 
     function verifyPassword() {
       const inputUser = document.getElementById("adminUser").value.trim();
       const inputPass = document.getElementById("adminPass").value.trim();
-
       db.ref("adminUsers/" + inputUser).once("value")
         .then(snapshot => {
           const data = snapshot.val();
@@ -144,61 +170,51 @@
           loadData();
           loadAccessUsers();
         })
-        .catch(err => {
-          alert("登入錯誤：" + err.message);
-        });
+        .catch(err => alert("登入錯誤：" + err.message));
     }
 
+    // 載入待審核資料
     async function loadData() {
       try {
         const res = await fetch(getAPI);
         const data = await res.json();
         const container = document.getElementById("entries");
         container.innerHTML = "";
-
         if (!data || Object.keys(data).length === 0) {
           container.innerHTML = "<p style='text-align:center;'>✅ 目前沒有待審核資料</p>";
           return;
         }
-
         Object.entries(data).forEach(([key, entry]) => {
           const div = document.createElement("div");
           div.className = "entry";
           div.innerHTML = `
             <p><strong>申請帳號：</strong>${entry["申請帳號"]}</p>
             <p><strong>姓名：</strong>${entry["真實姓名"]} (${entry["Facebook資訊"]})</p>
-            <p><strong>付款資訊：</strong>[${entry["付款方式"]}] ${entry["付款帳號資訊"]}</p>
-            <p><strong>欲購買學校：</strong><span style="color:blue;">${(entry["選擇學校"] || []).join(", ")}</span></p>
-            <p style="font-size:12px; color:gray;">送出時間：${entry["送出時間"] || "無"}</p>
-            <button class="btn-approve" onclick='approve("${key}", ${JSON.stringify(entry)})'>✅ 同意並加入正式庫</button>
-            <button class="danger" onclick='remove("${key}")'>🗑️ 刪除申請</button>
+            <p><strong>付款：</strong>[${entry["付款方式"]}] ${entry["付款帳號資訊"]}</p>
+            <p><strong>學校：</strong><span style="color:blue;">${(entry["選擇學校"] || []).join(", ")}</span></p>
+            <button class="btn-approve" onclick='approve("${key}", ${JSON.stringify(entry)})'>✅ 同意</button>
+            <button class="danger" onclick='remove("${key}")'>🗑️ 刪除</button>
           `;
           container.appendChild(div);
         });
-      } catch (err) {
-        alert("❌ 無法讀取待審核資料");
-      }
+      } catch (err) { alert("❌ 載入失敗"); }
     }
 
+    // 載入正式使用者（含動態分類）
     async function loadAccessUsers() {
       try {
-        // 同時抓取正式使用者與最新科目清單
         const [res, subjectsSnapshot] = await Promise.all([
           fetch(getAccessAPI),
           accessDb.ref("subjects").once("value")
         ]);
-        
         const data = await res.json();
         const subjectsData = subjectsSnapshot.val() || {};
-        
-        // 自動從資料庫 subjects 節點提取所有 Key
         const allDynamicSchools = Object.keys(subjectsData);
         
         const container = document.getElementById("accessUsers");
         container.innerHTML = "";
-
         if (!data || Object.keys(data).length === 0) {
-          container.innerHTML = "<p style='text-align:center;'>✅ 目前無正式使用者</p>";
+          container.innerHTML = "<p style='text-align:center;'>✅ 無正式使用者</p>";
           return;
         }
 
@@ -206,114 +222,113 @@
 
         sortedUsers.forEach(([username, user]) => {
           const div = document.createElement("div");
-          div.className = "entry";
+          div.className = "entry user-config-card"; // 加 class 方便掃描
+          div.setAttribute("data-original-username", username); // 紀錄原始帳號
+
           const purchasedSet = new Set(Object.keys(user.purchased || {}));
-          
-          // 動態生成 Checkboxes
           let schoolCheckboxes = allDynamicSchools.map(school => `
             <label>
-              <input type="checkbox" name="edit-schools-${username}" value="${school}" ${purchasedSet.has(school) ? "checked" : ""}>
+              <input type="checkbox" class="school-check" value="${school}" ${purchasedSet.has(school) ? "checked" : ""}>
               ${school}
             </label>
           `).join("");
 
           div.innerHTML = `
-            <p><strong>帳號：</strong> <input type="text" id="edit-user-${username}" value="${username}" style="width:150px;"></p>
-            <p><strong>密碼：</strong> <input type="text" id="edit-pass-${username}" value="${user.password || ""}" style="width:150px;"></p>
-            <div><strong>權限設定（勾選即代表購買）：</strong></div>
+            <p><strong>帳號：</strong> <input type="text" class="edit-user" value="${username}" style="width:150px;"></p>
+            <p><strong>密碼：</strong> <input type="text" class="edit-pass" value="${user.password || ""}" style="width:150px;"></p>
+            <div><strong>權限設定：</strong></div>
             <div class="school-tag-container">${schoolCheckboxes}</div>
-            <p><strong>目前狀態：</strong>${user.isLoggedIn ? "<span style='color:green;'>🟢 在線中</span>" : "<span style='color:gray;'>⚫ 離線</span>"}</p>
-            <button class="btn-save" onclick='confirmUpdateUser("${username}")'>💾 儲存變更</button>
-            <button class="danger" onclick='deleteAccessUser("${username}")'>🗑️ 刪除帳號</button>
+            <p style="font-size: 13px;">狀態：${user.isLoggedIn ? "🟢 在線" : "⚫ 離線"}</p>
+            <button class="danger" onclick='deleteAccessUser("${username}")' style="position:absolute; top:10px; right:10px;">🗑️ 刪除</button>
           `;
           container.appendChild(div);
         });
-      } catch (err) {
-        console.error("載入使用者失敗", err);
-      }
+      } catch (err) { console.error(err); }
     }
 
+    // ⭐ 重點功能：一鍵儲存所有變更
+    async function saveAllChanges() {
+      const cards = document.querySelectorAll(".user-config-card");
+      if (cards.length === 0) return;
+      if (!confirm(`確定要儲存這 ${cards.length} 位使用者的變更嗎？`)) return;
+
+      const btn = document.querySelector(".btn-bulk-save");
+      const originalText = btn.innerText;
+      btn.innerText = "⏳ 儲存中，請稍候...";
+      btn.disabled = true;
+
+      let successCount = 0;
+      let failCount = 0;
+
+      // 遍歷所有卡片進行更新
+      for (const card of cards) {
+        const originalUsername = card.getAttribute("data-original-username");
+        const newUsername = card.querySelector(".edit-user").value.trim();
+        const newPassword = card.querySelector(".edit-pass").value.trim();
+        const schoolInputs = card.querySelectorAll(".school-check:checked");
+        const newSchools = Array.from(schoolInputs).map(input => input.value);
+
+        const payload = { originalUsername, newUsername, newPassword, newSchools };
+
+        try {
+          const res = await fetch(updateAccessAPI, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+          if (res.ok) successCount++; else failCount++;
+        } catch (err) {
+          failCount++;
+        }
+      }
+
+      alert(`儲存完成！\n成功：${successCount} 筆\n失敗：${failCount} 筆`);
+      btn.innerText = originalText;
+      btn.disabled = false;
+      loadAccessUsers(); // 重新載入界面
+    }
+
+    // 審核同意
     async function approve(key, entry) {
-      const payload = {
-        username: entry["申請帳號"],
-        password: entry["申請密碼"],
-        schools: entry["選擇學校"]
-      };
+      const payload = { username: entry["申請帳號"], password: entry["申請密碼"], schools: entry["選擇學校"] };
       try {
         const res = await fetch(approveAPI, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
         });
-        const result = await res.json();
-        if (!res.ok) throw new Error(result.error || "審核失敗");
-        alert("✅ 使用者已成功加入正式庫");
+        if (!res.ok) throw new Error("審核失敗");
+        alert("✅ 已加入正式庫");
         await remove(key);
         loadAccessUsers();
-      } catch (err) {
-        alert("❌ 錯誤：" + err.message);
-      }
+      } catch (err) { alert(err.message); }
     }
 
     async function remove(key) {
-      try {
-        await fetch(deleteAPI, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ key })
-        });
-        loadData();
-      } catch (err) {
-        alert("❌ 刪除失敗");
-      }
+      await fetch(deleteAPI, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key })
+      });
+      loadData();
     }
 
     async function deleteAll() {
-      if (!confirm("⚠️ 確定刪除所有申請資料？")) return;
+      if (!confirm("⚠️ 確定清空？")) return;
       const res = await fetch(getAPI);
       const data = await res.json();
       if (!data) return;
-      for (const key of Object.keys(data)) {
-        await remove(key);
-      }
-    }
-
-    async function confirmUpdateUser(originalUsername) {
-      if (!confirm("確定要儲存變更？")) return;
-      const newUsername = document.getElementById("edit-user-" + originalUsername).value.trim();
-      const newPassword = document.getElementById("edit-pass-" + originalUsername).value.trim();
-      const schoolInputs = document.querySelectorAll(`input[name="edit-schools-${originalUsername}"]:checked`);
-      const newSchools = Array.from(schoolInputs).map(input => input.value);
-
-      const payload = { originalUsername, newUsername, newPassword, newSchools };
-
-      try {
-        const res = await fetch("https://us-central1-chesolutionsignup.cloudfunctions.net/updateAccessUserInfo", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-        if (!res.ok) throw new Error("更新失敗");
-        alert("✅ 資料更新成功");
-        loadAccessUsers();
-      } catch (err) {
-        alert("❌ 更新出錯：" + err.message);
-      }
+      for (const key of Object.keys(data)) await remove(key);
     }
 
     async function deleteAccessUser(username) {
-      if (!confirm(`⚠️ 確定要永久刪除使用者 ${username} 嗎？`)) return;
-      try {
-        await fetch(deleteAccessAPI, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username })
-        });
-        alert("✅ 已刪除帳號");
-        loadAccessUsers();
-      } catch (err) {
-        alert("❌ 刪除失敗");
-      }
+      if (!confirm(`確定刪除 ${username}？`)) return;
+      await fetch(deleteAccessAPI, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username })
+      });
+      loadAccessUsers();
     }
   </script>
 </body>
