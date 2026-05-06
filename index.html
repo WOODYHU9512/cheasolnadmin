@@ -4,99 +4,99 @@
   <meta charset="UTF-8" />
   <title>審核註冊申請 - 批次管理版</title>
   <style>
-  body {
-    font-family: "Microsoft JhengHei", Arial, sans-serif;
-    max-width: 900px;
-    margin: 20px auto;
-    padding: 10px;
-    background-color: #f4f7f6;
-  }
-  h2, h3 {
-    text-align: center;
-    color: #333;
-  }
-  .entry {
-    background: white;
-    border: 1px solid #ddd;
-    padding: 20px;
-    margin: 15px 0;
-    border-radius: 12px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    position: relative;
-  }
-  .school-tag-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    background: #f9f9f9;
-    padding: 10px;
-    border-radius: 8px;
-    margin-top: 5px;
-  }
-  .school-tag-container label {
-    font-size: 14px;
-    background: #fff;
-    border: 1px solid #ccc;
-    padding: 4px 8px;
-    border-radius: 4px;
-    cursor: pointer;
-  }
-  .school-tag-container input {
-    margin-right: 5px;
-  }
-  .sticky-header {
-    position: sticky;
-    top: 0;
-    background: #f4f7f6;
-    padding: 10px 0;
-    z-index: 100;
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    border-bottom: 2px solid #ddd;
-  }
-  button {
-    margin-top: 10px;
-    padding: 8px 16px;
-    font-size: 14px;
-    cursor: pointer;
-    border-radius: 5px;
-    border: 1px solid #ddd;
-  }
-  .btn-approve { background-color: #4CAF50; color: white; border: none; }
-  .btn-save { background-color: #2196F3; color: white; border: none; }
-  .btn-bulk-save { 
-    background-color: #ff9800; 
-    color: white; 
-    border: none; 
-    font-weight: bold;
-    padding: 12px 24px;
-    font-size: 16px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  }
-  .danger { color: red; border-color: red; background: white; }
-  .danger:hover { background: #fff1f1; }
+    body {
+      font-family: "Microsoft JhengHei", Arial, sans-serif;
+      max-width: 900px;
+      margin: 20px auto;
+      padding: 10px;
+      background-color: #f4f7f6;
+    }
+    h2, h3 {
+      text-align: center;
+      color: #333;
+    }
+    .entry {
+      background: white;
+      border: 1px solid #ddd;
+      padding: 20px;
+      margin: 15px 0;
+      border-radius: 12px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      position: relative;
+    }
+    .school-tag-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      background: #f9f9f9;
+      padding: 10px;
+      border-radius: 8px;
+      margin-top: 5px;
+    }
+    .school-tag-container label {
+      font-size: 14px;
+      background: #fff;
+      border: 1px solid #ccc;
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .school-tag-container input {
+      margin-right: 5px;
+    }
+    .sticky-header {
+      position: sticky;
+      top: 0;
+      background: #f4f7f6;
+      padding: 10px 0;
+      z-index: 100;
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      border-bottom: 2px solid #ddd;
+    }
+    button {
+      margin-top: 10px;
+      padding: 8px 16px;
+      font-size: 14px;
+      cursor: pointer;
+      border-radius: 5px;
+      border: 1px solid #ddd;
+    }
+    .btn-approve { background-color: #4CAF50; color: white; border: none; }
+    .btn-save { background-color: #2196F3; color: white; border: none; }
+    .btn-bulk-save { 
+      background-color: #ff9800; 
+      color: white; 
+      border: none; 
+      font-weight: bold;
+      padding: 12px 24px;
+      font-size: 16px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .danger { color: red; border-color: red; background: white; }
+    .danger:hover { background: #fff1f1; }
 
-  #login-section {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-top: 50px;
-    background: white;
-    padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-  }
-  #login-section label { margin: 10px 0; font-size: 16px; }
-  #login-section input {
-    padding: 10px;
-    font-size: 16px;
-    width: 250px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    margin-left: 10px;
-  }
-</style>
+    #login-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 50px;
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    #login-section label { margin: 10px 0; font-size: 16px; }
+    #login-section input {
+      padding: 10px;
+      font-size: 16px;
+      width: 250px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      margin-left: 10px;
+    }
+  </style>
 
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
@@ -209,7 +209,7 @@
         ]);
         const data = await res.json();
         const subjectsData = subjectsSnapshot.val() || {};
-        const allDynamicSchools = Object.keys(subjectsData);
+        const allDynamicSchools = Object.keys(subjectsData); 
         
         const container = document.getElementById("accessUsers");
         container.innerHTML = "";
@@ -222,8 +222,8 @@
 
         sortedUsers.forEach(([username, user]) => {
           const div = document.createElement("div");
-          div.className = "entry user-config-card"; // 加 class 方便掃描
-          div.setAttribute("data-original-username", username); // 紀錄原始帳號
+          div.className = "entry user-config-card"; 
+          div.setAttribute("data-original-username", username); 
 
           const purchasedSet = new Set(Object.keys(user.purchased || {}));
           let schoolCheckboxes = allDynamicSchools.map(school => `
@@ -246,7 +246,58 @@
       } catch (err) { console.error(err); }
     }
 
-    // ⭐ 重點功能：一鍵儲存所有變更
+    // ⭐ 核心解法：將前端的名稱翻譯成 Firebase 資料庫正確的節點名稱
+    function mapSchoolsToBackendKeys(frontendSchools) {
+      let backendKeys = new Set();
+      
+      // 預設送給所有購買者的基礎資料夾（103-105年）
+      backendKeys.add("103-105各校");
+
+      frontendSchools.forEach(school => {
+        // 台大邏輯
+        if (school.includes("台大")) {
+          backendKeys.add("台大");
+          if (school.includes("115年")) backendKeys.add("115年台大");
+        }
+        // 成大邏輯
+        if (school.includes("成大")) {
+          backendKeys.add("成大");
+          if (school.includes("115年")) backendKeys.add("115年成大");
+        }
+        // 清大邏輯
+        if (school.includes("清大")) {
+          backendKeys.add("清大");
+          if (school.includes("115年")) backendKeys.add("115年清大");
+        }
+        // 其他邏輯
+        if (school.includes("中央")) backendKeys.add("中央");
+        if (school.includes("中興")) backendKeys.add("中興");
+        if (school.includes("台科大")) backendKeys.add("台科大");
+      });
+
+      return Array.from(backendKeys);
+    }
+
+    // ⭐ 修改審核邏輯：在送出前先執行轉換
+    async function approve(key, entry) {
+      // 透過轉換器，把「台大(103-115年)」拆成正確的資料庫節點名稱
+      const mappedSchools = mapSchoolsToBackendKeys(entry["選擇學校"] || []);
+      
+      const payload = { username: entry["申請帳號"], password: entry["申請密碼"], schools: mappedSchools };
+      try {
+        const res = await fetch(approveAPI, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error("審核失敗");
+        alert("✅ 已加入正式庫");
+        await remove(key);
+        loadAccessUsers();
+      } catch (err) { alert(err.message); }
+    }
+
+    // 批次儲存
     async function saveAllChanges() {
       const cards = document.querySelectorAll(".user-config-card");
       if (cards.length === 0) return;
@@ -260,7 +311,6 @@
       let successCount = 0;
       let failCount = 0;
 
-      // 遍歷所有卡片進行更新
       for (const card of cards) {
         const originalUsername = card.getAttribute("data-original-username");
         const newUsername = card.querySelector(".edit-user").value.trim();
@@ -285,23 +335,7 @@
       alert(`儲存完成！\n成功：${successCount} 筆\n失敗：${failCount} 筆`);
       btn.innerText = originalText;
       btn.disabled = false;
-      loadAccessUsers(); // 重新載入界面
-    }
-
-    // 審核同意
-    async function approve(key, entry) {
-      const payload = { username: entry["申請帳號"], password: entry["申請密碼"], schools: entry["選擇學校"] };
-      try {
-        const res = await fetch(approveAPI, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-        if (!res.ok) throw new Error("審核失敗");
-        alert("✅ 已加入正式庫");
-        await remove(key);
-        loadAccessUsers();
-      } catch (err) { alert(err.message); }
+      loadAccessUsers(); 
     }
 
     async function remove(key) {
